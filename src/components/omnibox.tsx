@@ -78,16 +78,28 @@ export default function Omnibox({ onSubmit, onQueryChange, autoCompleteSuggestio
       return
     }
 
-    target.focus()
-    const selection = window.getSelection()
-    if (!selection) {
-      return
+    const focusAndMoveCaretToEnd = () => {
+      target.focus()
+      const selection = window.getSelection()
+      if (!selection) {
+        return
+      }
+      const range = document.createRange()
+      range.selectNodeContents(target)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
     }
-    const range = document.createRange()
-    range.selectNodeContents(target)
-    range.collapse(false)
-    selection.removeAllRanges()
-    selection.addRange(range)
+
+    // iOS Safari can ignore immediate focus during overlay transitions.
+    const rafId = window.requestAnimationFrame(() => {
+      focusAndMoveCaretToEnd()
+      window.setTimeout(focusAndMoveCaretToEnd, 30)
+    })
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+    }
   }, [])
 
   useEffect(() => {

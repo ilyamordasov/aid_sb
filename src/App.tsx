@@ -222,7 +222,10 @@ function App() {
 
     if (isOmniboxExpanded || isMoreOptionsOpen) {
       const activeElement = document.activeElement as HTMLElement | null
-      if (activeElement && activeElement !== document.body) activeElement.blur()
+      // Blur only background-focused elements. Do not blur omnibox/content in portal.
+      if (activeElement && activeElement !== document.body && pageView?.contains(activeElement)) {
+        activeElement.blur()
+      }
 
       root.style.overflow = 'hidden'
       root.style.overscrollBehavior = 'none'
