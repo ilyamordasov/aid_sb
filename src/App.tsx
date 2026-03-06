@@ -135,6 +135,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [frameState, setFrameState] = useState<FrameState>('idle')
   const [isOmniboxExpanded, setIsOmniboxExpanded] = useState(false)
+  const [omniboxFocusKey, setOmniboxFocusKey] = useState(0)
   const [isMoreOptionsOpen, setIsMoreOptionsOpen] = useState(false)
   const [omniboxQuery, setOmniboxQuery] = useState('')
   const [incognitoAnimKey, setIncognitoAnimKey] = useState(0)
@@ -401,6 +402,7 @@ function App() {
               onClick={() => {
                 setOmniboxQuery('')
                 setIsOmniboxExpanded(true)
+                setOmniboxFocusKey((prev) => prev + 1)
               }}
             >
               <OmniboxBottom
@@ -615,6 +617,7 @@ function App() {
                   onSubmit={handleOmniboxSubmit}
                   onQueryChange={setOmniboxQuery}
                   autoCompleteSuggestion={isIncognitoTrigger ? incognitoAutocomplete : null}
+                  focusKey={omniboxFocusKey}
                 />
               </div>
             </div>

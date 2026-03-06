@@ -7,7 +7,7 @@ describe('Omnibox input', () => {
     const html = renderToStaticMarkup(<Omnibox onSubmit={() => {}} />)
 
     expect(html).toContain('class="omnibox-input-text"')
-    expect(html).toContain('tabindex="-1"')
+    expect(html).toContain('tabindex="0"')
     expect(html).toContain('contentEditable="true"')
     expect((html.match(/type="text"/g) ?? []).length).toBe(0)
   })

@@ -65,9 +65,15 @@ interface OmniboxProps {
   onSubmit: (value: string) => void
   onQueryChange?: (value: string) => void
   autoCompleteSuggestion?: string | null
+  focusKey?: number
 }
 
-export default function Omnibox({ onSubmit, onQueryChange, autoCompleteSuggestion = null }: OmniboxProps) {
+export default function Omnibox({
+  onSubmit,
+  onQueryChange,
+  autoCompleteSuggestion = null,
+  focusKey = 0,
+}: OmniboxProps) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLDivElement | null>(null)
   const isTyping = query.length > 0
@@ -92,15 +98,19 @@ export default function Omnibox({ onSubmit, onQueryChange, autoCompleteSuggestio
     }
 
     // iOS Safari can ignore immediate focus during overlay transitions.
+    const timers: number[] = []
     const rafId = window.requestAnimationFrame(() => {
       focusAndMoveCaretToEnd()
-      window.setTimeout(focusAndMoveCaretToEnd, 30)
+      ;[30, 90, 180, 320, 500].forEach((delay) => {
+        timers.push(window.setTimeout(focusAndMoveCaretToEnd, delay))
+      })
     })
 
     return () => {
       window.cancelAnimationFrame(rafId)
+      timers.forEach((timerId) => window.clearTimeout(timerId))
     }
-  }, [])
+  }, [focusKey])
 
   useEffect(() => {
     if (!query) return
@@ -149,7 +159,7 @@ export default function Omnibox({ onSubmit, onQueryChange, autoCompleteSuggestio
             role="textbox"
             aria-label="Omnibox"
             aria-multiline="false"
-            tabIndex={-1}
+            tabIndex={0}
             className="omnibox-input-text"
             dir="ltr"
             lang="ru"
