@@ -1,6 +1,13 @@
 [build]
   command = "npm run build:netlify"
   publish = "dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/__proxy"
+  to = "/.netlify/functions/proxy"
+  status = 200
+  force = true
 
 [[redirects]]
   from = "/*"
