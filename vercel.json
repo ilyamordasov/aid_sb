@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm run build:netlify",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/__proxy",
+      "destination": "/api/proxy"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

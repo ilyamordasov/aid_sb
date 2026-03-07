@@ -1,8 +1,3 @@
-import { defineConfig } from 'vite'
-import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { Plugin } from 'vite'
-import react from '@vitejs/plugin-react'
-
 const HOP_BY_HOP_HEADERS = new Set([
   'connection',
   'keep-alive',
@@ -23,10 +18,9 @@ const BLOCKED_EMBED_HEADERS = new Set([
   'cross-origin-resource-policy',
 ])
 
-/** Headers we must not forward because we send decompressed body (fetch() decodes for us). */
 const ENCODING_HEADERS = new Set(['content-encoding', 'content-length'])
 
-function escapeHtmlAttribute(value: string): string {
+function escapeHtmlAttribute(value) {
   return value
     .replaceAll('&', '&amp;')
     .replaceAll('"', '&quot;')
@@ -34,7 +28,7 @@ function escapeHtmlAttribute(value: string): string {
     .replaceAll('>', '&gt;')
 }
 
-function injectBaseTag(html: string, baseHref: string): string {
+function injectBaseTag(html, baseHref) {
   const baseTag = `<base href="${escapeHtmlAttribute(baseHref)}">`
   if (/<head[^>]*>/i.test(html)) {
     return html.replace(/<head[^>]*>/i, (match) => `${match}\n${baseTag}`)
@@ -42,7 +36,7 @@ function injectBaseTag(html: string, baseHref: string): string {
   return `${baseTag}\n${html}`
 }
 
-function injectLightThemeGuard(html: string): string {
+function injectLightThemeGuard(html) {
   const lightThemeGuard = `
 <meta name="color-scheme" content="light">
 <style id="proxy-force-light-theme">
@@ -84,18 +78,16 @@ function injectLightThemeGuard(html: string): string {
   if (/<head[^>]*>/i.test(html)) {
     return html.replace(/<head[^>]*>/i, (match) => `${match}\n${lightThemeGuard}`)
   }
-
   return `${lightThemeGuard}\n${html}`
 }
 
-function neutralizeDarkColorScheme(content: string): string {
+function neutralizeDarkColorScheme(content) {
   return content.replace(/prefers-color-scheme\s*:\s*dark/gi, 'prefers-color-scheme: __proxy_never_dark')
 }
 
-/** Rewrite all URLs (absolute and relative) in href, src, action to go through proxy. */
-function rewriteHtmlUrlsToProxy(html: string, baseOrigin: string, proxyPath: string): string {
-  const baseUrl = baseOrigin.endsWith('/') ? baseOrigin : baseOrigin + '/'
-  const resolveUrl = (value: string) => {
+function rewriteHtmlUrlsToProxy(html, baseOrigin, proxyPath) {
+  const baseUrl = baseOrigin.endsWith('/') ? baseOrigin : `${baseOrigin}/`
+  const resolveUrl = (value) => {
     try {
       const absolute = new URL(value, baseUrl).href
       return `${proxyPath}?url=${encodeURIComponent(absolute)}`
@@ -103,74 +95,59 @@ function rewriteHtmlUrlsToProxy(html: string, baseOrigin: string, proxyPath: str
       return value
     }
   }
-  // Absolute http(s) URLs
-  let out = html.replace(
-    /\s(href|src|action)\s*=\s*(["'])(https?:\/\/[^"']+)\2/gi,
-    (_, attrName, quote, url: string) =>
-      ` ${attrName}=${quote}${resolveUrl(url)}${quote}`
-  )
-  // Relative URLs (start with / or ./ or ../) so they don't go cross-origin
-  out = out.replace(
-    /\s(href|src|action)\s*=\s*(["'])((?:\.\.?\/)[^"']*)\2/gi,
-    (_, attrName, quote, url: string) =>
-      ` ${attrName}=${quote}${resolveUrl(url)}${quote}`
-  )
-  out = out.replace(
-    /\s(href|src|action)\s*=\s*(["'])((?!https?:|\/\/)[^"']*)\2/gi,
-    (_, attrName, quote, url: string) => {
-      if (/^[a-z-]+:/i.test(url) || url.startsWith('//') || url.startsWith('#') || url.startsWith('?')) {
-        return _
-      }
-      return ` ${attrName}=${quote}${resolveUrl(url)}${quote}`
+
+  let out = html.replace(/\s(href|src|action)\s*=\s*(["'])(https?:\/\/[^"']+)\2/gi, (_, attrName, quote, url) => {
+    return ` ${attrName}=${quote}${resolveUrl(url)}${quote}`
+  })
+
+  out = out.replace(/\s(href|src|action)\s*=\s*(["'])((?:\.\.?\/)[^"']*)\2/gi, (_, attrName, quote, url) => {
+    return ` ${attrName}=${quote}${resolveUrl(url)}${quote}`
+  })
+
+  out = out.replace(/\s(href|src|action)\s*=\s*(["'])((?!https?:|\/\/)[^"']*)\2/gi, (match, attrName, quote, url) => {
+    if (/^[a-z-]+:/i.test(url) || url.startsWith('//') || url.startsWith('#') || url.startsWith('?')) {
+      return match
     }
-  )
+    return ` ${attrName}=${quote}${resolveUrl(url)}${quote}`
+  })
+
   return out
 }
 
-/** Rewrite all https? URL string literals in script content so fetch/XHR go through proxy. */
-function rewriteScriptUrlsToProxy(scriptContent: string, proxyPath: string): string {
+function rewriteScriptUrlsToProxy(scriptContent, proxyPath) {
   const doubleQuoted = /"(https?:\/\/[^"]*)"/g
   const singleQuoted = /'(https?:\/\/[^']*)'/g
-  const toProxy = (url: string) => {
-    try {
-      new URL(url)
-      return `${proxyPath}?url=${encodeURIComponent(url)}`
-    } catch {
-      return url
-    }
-  }
+  const toProxy = (url) => `${proxyPath}?url=${encodeURIComponent(url)}`
   return scriptContent
     .replace(doubleQuoted, (_, url) => `"${toProxy(url)}"`)
     .replace(singleQuoted, (_, url) => `'${toProxy(url)}'`)
 }
 
-function rewriteInlineScriptUrls(html: string, proxyPath: string): string {
+function rewriteInlineScriptUrls(html, proxyPath) {
   return html.replace(/<script(\s[^>]*)?>([\s\S]*?)<\/script>/gi, (tag, attrs, body) => {
     if (attrs && /src\s*=/i.test(attrs)) return tag
     return `<script${attrs ?? ''}>${rewriteScriptUrlsToProxy(body, proxyPath)}</script>`
   })
 }
 
-function writeHtmlError(res: ServerResponse, status: number, message: string): void {
-  res.statusCode = status
-  res.setHeader('content-type', 'text/html; charset=utf-8')
-  res.end(`<!doctype html><html><body><h1>${message}</h1></body></html>`)
+function writeHtmlError(res, status, message) {
+  res.status(status).setHeader('content-type', 'text/html; charset=utf-8')
+  res.send(`<!doctype html><html><body><h1>${message}</h1></body></html>`)
 }
 
-async function proxyHandler(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export default async function handler(req, res) {
   if (req.method !== 'GET') {
     writeHtmlError(res, 405, 'Method not allowed')
     return
   }
 
-  const requestUrl = new URL(req.url ?? '/', 'http://localhost')
-  const target = requestUrl.searchParams.get('url')?.trim()
+  const target = (req.query?.url ?? '').toString().trim()
   if (!target) {
     writeHtmlError(res, 400, 'Missing url query parameter')
     return
   }
 
-  let parsedTarget: URL
+  let parsedTarget
   try {
     parsedTarget = new URL(target)
     if (parsedTarget.protocol !== 'http:' && parsedTarget.protocol !== 'https:') {
@@ -182,15 +159,14 @@ async function proxyHandler(req: IncomingMessage, res: ServerResponse): Promise<
     return
   }
 
-  const pathnameForAccept = parsedTarget.pathname.toLowerCase()
-  const acceptHeader =
-    /\.(css|less|scss)(\?|$)/i.test(pathnameForAccept)
-      ? 'text/css,*/*;q=0.9'
-      : /\.(js|mjs|cjs)(\?|$)/i.test(pathnameForAccept)
-        ? 'application/javascript,*/*;q=0.9'
-        : undefined
+  const pathname = parsedTarget.pathname.toLowerCase()
+  const acceptHeader = /\.(css|less|scss)(\?|$)/i.test(pathname)
+    ? 'text/css,*/*;q=0.9'
+    : /\.(js|mjs|cjs)(\?|$)/i.test(pathname)
+      ? 'application/javascript,*/*;q=0.9'
+      : undefined
 
-  let upstream: Response
+  let upstream
   try {
     upstream = await fetch(parsedTarget.toString(), {
       redirect: 'follow',
@@ -209,40 +185,29 @@ async function proxyHandler(req: IncomingMessage, res: ServerResponse): Promise<
   }
 
   const contentType = upstream.headers.get('content-type') ?? 'application/octet-stream'
-  const pathname = parsedTarget.pathname.toLowerCase()
   const looksLikeCss = /\.(css|less|scss)(\?|$)/i.test(pathname)
   const looksLikeJs = /\.(js|mjs|cjs)(\?|$)/i.test(pathname)
   const requestedResource = looksLikeCss || looksLikeJs
 
-  res.statusCode = upstream.status
-
+  res.status(upstream.status)
   upstream.headers.forEach((value, name) => {
     const lowerName = name.toLowerCase()
-    if (HOP_BY_HOP_HEADERS.has(lowerName)) {
-      return
-    }
-    if (BLOCKED_EMBED_HEADERS.has(lowerName)) {
-      return
-    }
-    if (ENCODING_HEADERS.has(lowerName)) {
-      return // body is already decompressed by fetch(); do not forward encoding/length
-    }
-    if (lowerName === 'location') {
-      return
-    }
+    if (HOP_BY_HOP_HEADERS.has(lowerName)) return
+    if (BLOCKED_EMBED_HEADERS.has(lowerName)) return
+    if (ENCODING_HEADERS.has(lowerName)) return
+    if (lowerName === 'location') return
     res.setHeader(name, value)
   })
 
-  // If client asked for CSS/JS but server returned HTML (404/error page), don't send HTML as stylesheet/script
   if (requestedResource && contentType.includes('text/html')) {
     if (looksLikeCss) {
       res.setHeader('content-type', 'text/css; charset=utf-8')
-      res.end('/* resource unavailable */')
+      res.send('/* resource unavailable */')
       return
     }
     if (looksLikeJs) {
       res.setHeader('content-type', 'application/javascript; charset=utf-8')
-      res.end('// resource unavailable')
+      res.send('// resource unavailable')
       return
     }
   }
@@ -256,7 +221,7 @@ async function proxyHandler(req: IncomingMessage, res: ServerResponse): Promise<
     rewritten = rewriteHtmlUrlsToProxy(rewritten, baseHref, '/__proxy')
     rewritten = rewriteInlineScriptUrls(rewritten, '/__proxy')
     res.setHeader('content-type', 'text/html; charset=utf-8')
-    res.end(rewritten)
+    res.send(rewritten)
     return
   }
 
@@ -264,62 +229,21 @@ async function proxyHandler(req: IncomingMessage, res: ServerResponse): Promise<
     const js = await upstream.text()
     const rewritten = rewriteScriptUrlsToProxy(js, '/__proxy')
     res.setHeader('content-type', contentType)
-    res.end(rewritten)
+    res.send(rewritten)
     return
   }
 
   if (contentType.includes('css') || contentType.includes('text/css')) {
     const css = await upstream.text()
     let rewritten = neutralizeDarkColorScheme(css)
-    rewritten = rewritten.replace(
-      /url\s*\(\s*(["']?)(https?:\/\/[^"')]+)\1\s*\)/gi,
-      (_, _quote, url: string) => {
-        try {
-          new URL(url)
-          return `url("${'/__proxy?url=' + encodeURIComponent(url)}")`
-        } catch {
-          return _
-        }
-      }
-    )
+    rewritten = rewritten.replace(/url\s*\(\s*(["']?)(https?:\/\/[^"')]+)\1\s*\)/gi, (_, _quote, url) => {
+      return `url("${'/__proxy?url=' + encodeURIComponent(url)}")`
+    })
     res.setHeader('content-type', contentType)
-    res.end(rewritten)
+    res.send(rewritten)
     return
   }
 
   const payload = Buffer.from(await upstream.arrayBuffer())
-  res.end(payload)
+  res.send(payload)
 }
-
-function iframeProxyPlugin(): Plugin {
-  return {
-    name: 'iframe-proxy-plugin',
-    configureServer(server) {
-      server.middlewares.use('/__proxy', (req, res, next) => {
-        void proxyHandler(req, res).catch(() => {
-          if (!res.headersSent) {
-            writeHtmlError(res, 500, 'Unexpected proxy error')
-            return
-          }
-          next()
-        })
-      })
-    },
-    configurePreviewServer(server) {
-      server.middlewares.use('/__proxy', (req, res, next) => {
-        void proxyHandler(req, res).catch(() => {
-          if (!res.headersSent) {
-            writeHtmlError(res, 500, 'Unexpected proxy error')
-            return
-          }
-          next()
-        })
-      })
-    },
-  }
-}
-
-// https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), iframeProxyPlugin()],
-})
