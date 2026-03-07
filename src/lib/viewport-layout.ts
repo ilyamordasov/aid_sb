@@ -16,14 +16,14 @@ export function computeViewportMetrics({
   offsetTop,
 }: ViewportMetricsInput): ViewportMetricsResult {
   const safeVisibleHeight = Math.max(0, visibleHeight)
-  const safeOffsetTop = Math.max(0, offsetTop)
   const safeInnerHeight = Math.max(0, innerHeight)
   const keyboardHeight = Math.max(0, safeInnerHeight - safeVisibleHeight)
+  void offsetTop
 
   return {
-    viewportOffsetTop: safeOffsetTop,
+    viewportOffsetTop: 0,
     keyboardHeight,
-    appVisibleHeight: safeVisibleHeight || safeInnerHeight,
+    appVisibleHeight: safeInnerHeight || safeVisibleHeight,
   }
 }
 

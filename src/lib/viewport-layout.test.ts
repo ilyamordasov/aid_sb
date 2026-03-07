@@ -7,19 +7,19 @@ describe('viewport layout helpers', () => {
     expect(buildOverlayBottom(187)).toBe('calc(env(safe-area-inset-bottom) + 187px + var(--keyboard-height))')
   })
 
-  it('keeps base viewport height and reports keyboard height from visual viewport shrink', () => {
+  it('keeps layout anchored to stable viewport while reporting keyboard height', () => {
     const result = computeViewportMetrics({
       innerHeight: 844,
       visibleHeight: 544,
       offsetTop: 36,
     })
 
-    expect(result.viewportOffsetTop).toBe(36)
+    expect(result.viewportOffsetTop).toBe(0)
     expect(result.keyboardHeight).toBe(300)
-    expect(result.appVisibleHeight).toBe(544)
+    expect(result.appVisibleHeight).toBe(844)
   })
 
-  it('does not double-count visual viewport offset into keyboard height', () => {
+  it('ignores visual viewport offset to prevent first-focus auto-pan layout shifts', () => {
     const result = computeViewportMetrics({
       innerHeight: 844,
       visibleHeight: 600,
@@ -27,6 +27,7 @@ describe('viewport layout helpers', () => {
     })
 
     expect(result.keyboardHeight).toBe(244)
-    expect(result.viewportOffsetTop).toBe(44)
+    expect(result.viewportOffsetTop).toBe(0)
+    expect(result.appVisibleHeight).toBe(844)
   })
 })

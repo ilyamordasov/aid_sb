@@ -80,6 +80,7 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
 }: OmniboxProps, ref) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLDivElement | null>(null)
+  const skipAsyncFocusRef = useRef(false)
   const isTyping = query.length > 0
 
   const focusAndMoveCaretToEnd = useCallback(() => {
@@ -87,7 +88,11 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
     if (!target) {
       return
     }
-    target.focus()
+    try {
+      target.focus({ preventScroll: true })
+    } catch {
+      target.focus()
+    }
     const selection = window.getSelection()
     if (!selection) {
       return
@@ -103,6 +108,7 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
     ref,
     () => ({
       focusImmediately() {
+        skipAsyncFocusRef.current = true
         focusAndMoveCaretToEnd()
       },
     }),
@@ -112,6 +118,12 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
   useEffect(() => {
     const target = inputRef.current
     if (!target) {
+      return
+    }
+
+    // When focus was triggered inside the user gesture, skip delayed retries.
+    if (skipAsyncFocusRef.current) {
+      skipAsyncFocusRef.current = false
       return
     }
 
@@ -187,9 +199,13 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
             data-placeholder="ask anything or type url"
             onInput={(event) => {
               const value = (event.currentTarget.textContent ?? '').replace(/\n/g, '')
+              const inputType = (event.nativeEvent as InputEvent | undefined)?.inputType ?? ''
+              const isDeleteInput = inputType.startsWith('delete')
               setQuery(value)
               onQueryChange?.(value)
-              applyAutocompleteSelection(value)
+              if (!isDeleteInput) {
+                applyAutocompleteSelection(value)
+              }
             }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
