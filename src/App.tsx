@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { parseAddressInput } from './lib/address'
 import { SITE_SUGGESTIONS } from './lib/site-suggestions'
 import { buildOverlayBottom, computeViewportMetrics } from './lib/viewport-layout'
+import { resolveSuggestedHostToUrl } from './lib/suggest-url'
 import OmniboxBottom from './components/omnibox-bottom'
-import Omnibox from './components/omnibox'
+import Omnibox, { type OmniboxHandle } from './components/omnibox'
 import Header from './components/header'
 import IncognitoHeader from './components/incognito-header'
 import SuggestSite from './components/suggest-site'
+import { Analytics } from '@vercel/analytics/react'
 import './App.css'
 
 type FrameState = 'idle' | 'loading' | 'ready' | 'blocked'
@@ -140,6 +142,7 @@ function App() {
   const [moreOptionsAnimKey, setMoreOptionsAnimKey] = useState(0)
   const pageViewRef = useRef<HTMLElement | null>(null)
   const iframeRef = useRef<HTMLIFrameElement | null>(null)
+  const omniboxRef = useRef<OmniboxHandle | null>(null)
   const wasIncognitoTriggerRef = useRef(false)
   const wasMoreOptionsOpenRef = useRef(false)
   const proxiedUrl = currentUrl ? `/__proxy?url=${encodeURIComponent(currentUrl)}` : null
@@ -185,11 +188,19 @@ function App() {
   const typedTitle = typedSite.title
   const typedHost = typedSite.host
   const typedFavicon = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(typedHost)}&sz=128`
-  const moreOptionsSites = Array.from(
-    new Map(
-      SITE_SUGGESTIONS.map((site) => [site.host.replace(/^www\./i, '').toLowerCase(), site] as const)
-    ).values()
-  )
+  const moreOptionsPinnedSites = [
+    { host: 'youtube.com', title: 'YouTube' },
+    { host: 'x.com', title: 'X' },
+    { host: 'instagram.com', title: 'Instagram' },
+    { host: 'facebook.com', title: 'Facebook' },
+    { host: 'hepsiburada.com', title: 'Hepsiburada' },
+  ]
+  const moreOptionsCardSites = [
+    { host: 'google.com', title: 'Google' },
+    { host: 'googleapis.com', title: 'Googleapis' },
+    { host: 'microsoft.com', title: 'Microsoft' },
+  ]
+  const shortcutHosts = ['youtube.com', 'x.com', 'instagram.com', 'facebook.com', 'hepsiburada.com']
 
   useEffect(() => {
     if (isIncognitoTrigger && !wasIncognitoTriggerRef.current) {
@@ -338,6 +349,10 @@ function App() {
     openInIframe(searchUrl)
   }
 
+  const handleSuggestionOpen = (host: string) => {
+    openInIframe(resolveSuggestedHostToUrl(host))
+  }
+
   useEffect(() => {
     if (!isOmniboxExpanded) {
       setOmniboxQuery('')
@@ -375,6 +390,15 @@ function App() {
     setIsOmniboxExpanded(false)
   }
 
+  const openExpandedOmnibox = () => {
+    flushSync(() => {
+      setOmniboxQuery('')
+      setIsOmniboxExpanded(true)
+      setOmniboxFocusKey((prev) => prev + 1)
+    })
+    omniboxRef.current?.focusImmediately()
+  }
+
   const inputStyle: CSSProperties = {
     bottom: buildOverlayBottom(16),
   }
@@ -385,6 +409,7 @@ function App() {
 
   return (
     <>
+      <Analytics />
       <main className="browser-app">
         <section
           ref={pageViewRef}
@@ -423,11 +448,7 @@ function App() {
           <div className="bottom-shell">
             <div
               style={{ maxWidth: '100%', overflow: 'visible' }}
-              onClick={() => {
-                setOmniboxQuery('')
-                setIsOmniboxExpanded(true)
-                setOmniboxFocusKey((prev) => prev + 1)
-              }}
+              onClick={openExpandedOmnibox}
             >
               <OmniboxBottom
                 currentHost={getCurrentHost()}
@@ -457,7 +478,7 @@ function App() {
               </p>
 
               <div className="more-options-sites-row">
-                {moreOptionsSites.slice(0, 5).map((site) => (
+                {moreOptionsPinnedSites.map((site) => (
                   <div key={site.host} className="more-options-site-icon">
                     <img
                       src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(site.host)}&sz=128`}
@@ -469,15 +490,24 @@ function App() {
               </div>
 
               <div className="more-options-cards-row">
-                {moreOptionsSites.slice(0, 3).map((site) => (
+                {moreOptionsCardSites.map((site) => (
                   <div key={`${site.host}-card`} className="more-options-card">
-                    <div className="more-options-card-thumb" />
-                    <div className="more-options-card-source">
+                    <div className="more-options-card-thumb">
                       <img
-                        src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(site.host)}&sz=128`}
+                        src={`https://s.wordpress.com/mshots/v1/${encodeURIComponent(`https://${site.host}`)}?w=640`}
                         alt=""
-                        className="more-options-card-favicon"
+                        className="more-options-card-thumb-image"
+                        loading="eager"
                       />
+                    </div>
+                    <div className="more-options-card-source">
+                      <span className="more-options-card-favicon-circle" aria-hidden="true">
+                        <img
+                          src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(site.host)}&sz=128`}
+                          alt=""
+                          className="more-options-card-favicon"
+                        />
+                      </span>
                       <span>{site.title}</span>
                     </div>
                   </div>
@@ -513,46 +543,46 @@ function App() {
             <div className="omnibox-pinned-header" onClick={(event) => event.stopPropagation()}>
               <div className="omnibox-open-header">
                 {isIncognitoTrigger ? <IncognitoHeader /> : <Header currentHost={getCurrentHost()} />}
+                <button
+                  type="button"
+                  className="omnibox-open-header-close-hit"
+                  aria-label="Close omnibox"
+                  onPointerDown={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    closeOmniboxOverlay()
+                  }}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    closeOmniboxOverlay()
+                  }}
+                />
               </div>
-              <button
-                type="button"
-                className="omnibox-open-close-hit"
-                aria-label="Close omnibox"
-                onPointerUp={closeOmniboxOverlay}
-                onTouchEnd={closeOmniboxOverlay}
-                onClick={closeOmniboxOverlay}
-              />
             </div>
 
             {isOmniboxExpanded && (
               <div className="omnibox-open-overlay" onClick={closeOmniboxOverlay} role="dialog" aria-modal="true">
               <div className="omnibox-open-top" onClick={(event) => event.stopPropagation()}>
-            {!isIncognitoTrigger && <div className="omnibox-open-shortcuts">
-              <svg width="393" height="112" viewBox="0 0 393 112" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                <defs>
-                  <linearGradient id="shortcutStroke" x1="0" y1="0" x2="393" y2="0" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="white" />
-                    <stop offset="0.5" stopColor="white" stopOpacity="0.2" />
-                    <stop offset="1" stopColor="white" />
-                  </linearGradient>
-                </defs>
-                <rect x="16" y="26" width="52" height="52" rx="26" fill="rgba(250,250,250,0.9)" />
-                <rect x="16.5" y="26.5" width="51" height="51" rx="25.5" stroke="url(#shortcutStroke)" strokeOpacity="0.3" />
-                <rect x="32" y="42" width="20" height="20" rx="6" fill="#0f172a" fillOpacity="0.08" />
-                <rect x="93.5" y="26" width="52" height="52" rx="26" fill="rgba(250,250,250,0.9)" />
-                <rect x="94" y="26.5" width="51" height="51" rx="25.5" stroke="url(#shortcutStroke)" strokeOpacity="0.3" />
-                <rect x="109.5" y="42" width="20" height="20" rx="6" fill="#0f172a" fillOpacity="0.08" />
-                <rect x="171" y="26" width="52" height="52" rx="26" fill="rgba(250,250,250,0.9)" />
-                <rect x="171.5" y="26.5" width="51" height="51" rx="25.5" stroke="url(#shortcutStroke)" strokeOpacity="0.3" />
-                <rect x="187" y="42" width="20" height="20" rx="6" fill="#0f172a" fillOpacity="0.08" />
-                <rect x="248.5" y="26" width="52" height="52" rx="26" fill="rgba(250,250,250,0.9)" />
-                <rect x="249" y="26.5" width="51" height="51" rx="25.5" stroke="url(#shortcutStroke)" strokeOpacity="0.3" />
-                <rect x="264.5" y="42" width="20" height="20" rx="6" fill="#0f172a" fillOpacity="0.08" />
-                <rect x="326" y="26" width="52" height="52" rx="26" fill="rgba(250,250,250,0.9)" />
-                <rect x="326.5" y="26.5" width="51" height="51" rx="25.5" stroke="url(#shortcutStroke)" strokeOpacity="0.3" />
-                <rect x="342" y="42" width="20" height="20" rx="6" fill="#0f172a" fillOpacity="0.08" />
-              </svg>
-            </div>}
+            {!isIncognitoTrigger && (
+              <div className="omnibox-open-shortcuts">
+                {shortcutHosts.map((host) => (
+                  <button
+                    key={host}
+                    type="button"
+                    className="omnibox-shortcut-tile"
+                    aria-label={host}
+                    onClick={() => handleSuggestionOpen(host)}
+                  >
+                    <img
+                      className="omnibox-shortcut-favicon"
+                      src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`}
+                      alt=""
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
 
             {isIncognitoTrigger ? (
               <div className="omnibox-incognito-hint">
@@ -608,6 +638,7 @@ function App() {
                       host={topicSuggest.host}
                       actionLabel={topicSuggest.actionLabel}
                       useTopicIcon
+                      onClick={() => handleSuggestionOpen(topicSuggest.host)}
                     />
                   ) : (
                     <>
@@ -623,7 +654,13 @@ function App() {
                         </span>
                         <span className="omnibox-history-text">Yandex</span>
                       </div>
-                      <SuggestSite title={typedTitle} host={typedHost} actionLabel="go to site" faviconSrc={typedFavicon} />
+                      <SuggestSite
+                        title={typedTitle}
+                        host={typedHost}
+                        actionLabel="go to site"
+                        faviconSrc={typedFavicon}
+                        onClick={() => handleSuggestionOpen(typedHost)}
+                      />
                     </>
                   )}
                 </div>
@@ -634,6 +671,7 @@ function App() {
 
               <div className="omnibox-open-input" style={inputStyle} onClick={(event) => event.stopPropagation()}>
                 <Omnibox
+                  ref={omniboxRef}
                   onSubmit={handleOmniboxSubmit}
                   onQueryChange={setOmniboxQuery}
                   autoCompleteSuggestion={isIncognitoTrigger ? incognitoAutocomplete : null}

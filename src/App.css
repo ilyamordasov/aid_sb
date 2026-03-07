@@ -172,6 +172,22 @@
   pointer-events: auto;
 }
 
+.omnibox-open-header-close-hit {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 100px;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  z-index: 240;
+  touch-action: manipulation;
+}
+
 .omnibox-open-header .top-header__bootstrap-root {
   width: 100% !important;
   max-width: 100% !important;
@@ -188,19 +204,21 @@
 
 .omnibox-open-close-hit {
   position: absolute;
-  top: env(safe-area-inset-top);
-  right: 0;
-  width: 88px;
-  height: 72px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  top: calc(env(safe-area-inset-top) + 12px);
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 100px;
+  background: rgba(250, 250, 250, 0.7);
   padding: 0;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   pointer-events: auto;
+  z-index: 200;
+  touch-action: manipulation;
 }
 
 .omnibox-open-close-hit svg {
@@ -221,19 +239,35 @@
 .omnibox-open-shortcuts {
   position: absolute;
   left: 50%;
-  top: calc(env(safe-area-inset-top) + 44px);
+  top: calc(env(safe-area-inset-top) + 68px);
   transform: translateX(-50%);
   width: var(--content-max-width);
   pointer-events: auto;
   z-index: 21;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
 }
 
-.omnibox-open-shortcuts svg {
-  width: 100%;
-  height: auto;
+.omnibox-shortcut-tile {
+  width: 52px;
+  height: 52px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 20px;
+  background: rgba(250, 250, 250, 0.9);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.omnibox-shortcut-favicon {
+  width: 24px;
+  height: 24px;
   display: block;
+  object-fit: contain;
 }
 
 .omnibox-open-suggests {
@@ -405,8 +439,8 @@
 .omnibox-history-text {
   color: #111111;
   font-family: 'YS Text Web', 'YS Text', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
-  font-size: 24px;
-  line-height: 30px;
+  font-size: 14px;
+  line-height: 18px;
   font-weight: 400;
   white-space: nowrap;
 }
@@ -707,6 +741,7 @@
 .more-options-content {
   --more-options-gap-headline-sites: 24px;
   --more-options-gap-sites-cards: 20px;
+  --more-options-card-thumb-height: 216px;
   width: var(--content-max-width);
   margin: calc(env(safe-area-inset-top) + 44px) auto 0;
   display: flex;
@@ -819,6 +854,7 @@
   .more-options-content {
     --more-options-gap-headline-sites: 18px;
     --more-options-gap-sites-cards: 14px;
+    --more-options-card-thumb-height: 176px;
   }
 }
 
@@ -826,6 +862,13 @@
   .more-options-content {
     --more-options-gap-headline-sites: 14px;
     --more-options-gap-sites-cards: 10px;
+    --more-options-card-thumb-height: 148px;
+  }
+}
+
+@media (max-height: 680px) {
+  .more-options-content {
+    --more-options-card-thumb-height: 124px;
   }
 }
 
@@ -837,9 +880,17 @@
 }
 
 .more-options-card-thumb {
-  height: 216px;
+  height: var(--more-options-card-thumb-height);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+}
+
+.more-options-card-thumb-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
 }
 
 .more-options-card-source {
@@ -852,15 +903,22 @@
   color: #111111;
 }
 
-.more-options-card-favicon {
-  width: 20px;
-  height: 20px;
+.more-options-card-favicon-circle {
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
+  background: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.more-options-card-favicon {
+  width: 16px;
+  height: 16px;
   object-fit: contain;
   display: block;
-  background: #fff;
-  padding: 1px;
-  box-sizing: border-box;
 }
 
 .more-options-actions {

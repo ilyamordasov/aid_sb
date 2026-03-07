@@ -7,6 +7,7 @@ interface SuggestSiteProps {
   actionLabel?: string;
   faviconSrc?: string;
   useTopicIcon?: boolean;
+  onClick?: () => void;
 }
 
 export default function SuggestSite({
@@ -15,6 +16,7 @@ export default function SuggestSite({
   actionLabel = "go to site",
   faviconSrc,
   useTopicIcon = false,
+  onClick,
 }: SuggestSiteProps) {
   const defaultFavicon =
     "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDkiIGhlaWdodD0iNDkiIHZpZXdCb3g9IjAgMCA0OSA0OSIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGcgZmlsdGVyPSJ1cmwoI2ZpbHRlcjBfZF82MDE5Nl81ODc3OTEpIj4KPHBhdGggZD0iTTAgMjQuNUMwIDEwLjk2OSAxMC45NjkgMCAyNC41IDBDMzguMDMxIDAgNDkgMTAuOTY5IDQ5IDI0LjVDNDkgMzguMDMxIDM4LjAzMSA0OSAyNC41IDQ5QzEwLjk2OSA0OSAwIDM4LjAzMSAwIDI0LjVaIiBmaWxsPSIjRkFGQUZBIiBmaWxsLW9wYWNpdHk9IjAuNyIgc2hhcGUtcmVuZGVyaW5nPSJjcmlzcEVkZ2VzIi8+CjxwYXRoIGQ9Ik0yNC41IDAuNzY1NjI1QzM3LjYwODEgMC43NjU2MjUgNDguMjM0NCAxMS4zOTE5IDQ4LjIzNDQgMjQuNUM0OC4yMzQ0IDM3LjYwODEgMzcuNjA4MSA0OC4yMzQ0IDI0LjUgNDguMjM0NEMxMS4zOTE5IDQ4LjIzNDQgMC43NjU2MjUgMzcuNjA4MSAwLjc2NTYyNSAyNC41QzAuNzY1NjI1IDExLjM5MTkgMTEuMzkxOSAwLjc2NTYyNSAyNC41IDAuNzY1NjI1WiIgc3Ryb2tlPSJ1cmwoI3BhaW50MF9saW5lYXJfNjAxOTZfNTg3NzkxKSIgc3Ryb2tlLW9wYWNpdHk9IjAuMyIgc3Ryb2tlLXdpZHRoPSIxLjUzMTI1IiBzaGFwZS1yZW5kZXJpbmc9ImNyaXNwRWRnZXMiLz4KPHBhdGggZD0iTTI0Ljk3NTcgMTYuOTEwM0MyMi43MzYzIDE2LjkyNjcgMjAuNjQ3MiAxOS4wMzk4IDE4Ljc5NzggMjIuMTEzOEMxNi45NDEgMjUuMiAxNi4xNzc1IDI4LjExMzkgMTcuMzgxMSAyOS45NzQ4QzE4LjU4NDcgMzEuODM1NyAyMS40NzAzIDMyLjc1MDggMjUuMDAxOCAzMi43NTA4QzI1LjAwMTkgMzIuNzUwOCAyNS4wMDIgMzIuNzUwOCAyNS4wMDIxIDMyLjc1MDhMMjUuMDg0NyAzMi43NTA2QzI4LjU1MTEgMzIuNzM2NSAzMS4zODM3IDMxLjgzNTUgMzIuNTk0MyAzMC4wMTgzTDMyLjYyMjggMjkuOTc0OEMzMy44MTcgMjguMTI4NCAzMy4wNzQ3IDI1LjI0NTQgMzEuMjQ5NSAyMi4xODYxTDMxLjIwNjEgMjIuMTEzOEMyOS4zNDk1IDE5LjAyNzggMjcuMjUxNCAxNi45MTAyIDI1LjAwMjEgMTYuOTEwMkwyNC45NzU3IDE2LjkxMDNaTTI1LjAxMjcgMzAuODEyNEMyNS4wMTM0IDMwLjgxMjQgMjUuMDE0IDMwLjgxMjQgMjUuMDE0NSAzMC44MTI1QzI1LjAxNDQgMzAuODEyNSAyNS4wMTQzIDMwLjgxMjUgMjUuMDE0MyAzMC44MTI1QzI1LjAxMzggMzAuODEyNCAyNS4wMTMxIDMwLjgxMjQgMjUuMDEyNSAzMC44MTI0SDI1LjAxMjdaTTI1LjAxOTcgMzAuODEyNUMyNS4wMTk5IDMwLjgxMjUgMjUuMDIwMiAzMC44MTI1IDI1LjAyMDMgMzAuODEyNUMyNS4wMjAzIDMwLjgxMjUgMjUuMDIwMyAzMC44MTI1IDI1LjAyMDMgMzAuODEyNUMyNS4wMjAxIDMwLjgxMjUgMjUuMDE5OCAzMC44MTI1IDI1LjAxOTYgMzAuODEyNUgyNS4wMTk3Wk0yNS4wMDE5IDMwLjgxMjRDMjMuMzg4MSAzMC44MTI0IDIyLjAxMzEgMzAuNjAxNCAyMC45NjEgMzAuMjMxOEMxOS44OTk0IDI5Ljg1ODkgMTkuMzAyIDI5LjM3NTYgMTkuMDA4NyAyOC45MjIxQzE4Ljc3ODggMjguNTY2NiAxOC42Mjc1IDI3Ljk0NjYgMTguODQxNyAyNi44ODgyQzE5LjA1NSAyNS44MzM4IDE5LjU5NjcgMjQuNTQ1OSAyMC40NTg3IDIzLjExMzFDMjEuMzMzNyAyMS42NTg3IDIyLjIwMzMgMjAuNTQxNyAyMy4wMzQ3IDE5LjgwODZDMjMuODY2NyAxOS4wNzUgMjQuNTE1NCAxOC44NDg2IDI1LjAwMjEgMTguODQ4NUMyNS40ODg3IDE4Ljg0ODUgMjYuMTM3NCAxOS4wNzQ5IDI2Ljk2OTMgMTkuODA4NkMyNy44MDA3IDIwLjU0MTggMjguNjcwMiAyMS42NTg3IDI5LjU0NTIgMjMuMTEzMUMzMC40MDcyIDI0LjU0NTkgMzAuOTQ4OSAyNS44MzM4IDMxLjE2MjIgMjYuODg4MkMzMS4zNzY0IDI3Ljk0NjYgMzEuMjI1MSAyOC41NjY2IDMwLjk5NTIgMjguOTIyMUMzMC43MDE5IDI5LjM3NTYgMzAuMTA0NSAyOS44NTg5IDI5LjA0MjkgMzAuMjMxOEMyNy45OTA4IDMwLjYwMTQgMjYuNjE1OCAzMC44MTI0IDI1LjAwMiAzMC44MTI0SDI1LjAwMTlaTTI1LjAwODUgMzAuODEyNEMyNS4wMDc5IDMwLjgxMjQgMjUuMDA3MyAzMC44MTI0IDI1LjAwNjcgMzAuODEyNEgyNS4wMDY5QzI1LjAwNzYgMzAuODEyNCAyNS4wMDgyIDMwLjgxMjQgMjUuMDA4NyAzMC44MTI0SDI1LjAwODVaIiBmaWxsPSJ1cmwoI3BhaW50MV9yYWRpYWxfNjAxOTZfNTg3NzkxKSIvPgo8L2c+CjxkZWZzPgo8ZmlsdGVyIGlkPSJmaWx0ZXIwX2RfNjAxOTZfNTg3NzkxIiB4PSItNDUuOTM3NSIgeT0iLTM5LjgxMjUiIHdpZHRoPSIxNDAuODc1IiBoZWlnaHQ9IjE0MC44NzUiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj4KPGZlRmxvb2QgZmxvb2Qtb3BhY2l0eT0iMCIgcmVzdWx0PSJCYWNrZ3JvdW5kSW1hZ2VGaXgiLz4KPGZlQ29sb3JNYXRyaXggaW49IlNvdXJjZUFscGhhIiB0eXBlPSJtYXRyaXgiIHZhbHVlcz0iMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMTI3IDAiIHJlc3VsdD0iaGFyZEFscGhhIi8+CjxmZU9mZnNldCBkeT0iNi4xMjUiLz4KPGZlR2F1c3NpYW5CbHVyIHN0ZERldmlhdGlvbj0iMjIuOTY4OCIvPgo8ZmVDb21wb3NpdGUgaW4yPSJoYXJkQWxwaGEiIG9wZXJhdG9yPSJvdXQiLz4KPGZlQ29sb3JNYXRyaXggdHlwZT0ibWF0cml4IiB2YWx1ZXM9IjAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAuMSAwIi8+CjxmZUJsZW5kIG1vZGU9Im5vcm1hbCIgaW4yPSJCYWNrZ3JvdW5kSW1hZ2VGaXgiIHJlc3VsdD0iZWZmZWN0MV9kcm9wU2hhZG93XzYwMTk2XzU4Nzc5MSIvPgo8ZmVCbGVuZCBtb2RlPSJub3JtYWwiIGluPSJCYWNrZ3JvdW5kSW1hZ2VGaXgiIGluMj0iZWZmZWN0MV9kcm9wU2hhZG93XzYwMTk2XzU4Nzc5MSIgcmVzdWx0PSJCYWNrZ3JvdW5kSW1hZ2VGaXgiLz4KPGZlQmxlbmQgbW9kZT0ibm9ybWFsIiBpbj0iU291cmNlR3JhcGhpYyIgaW4yPSJCYWNrZ3JvdW5kSW1hZ2VGaXgiIHJlc3VsdD0ic2hhcGUiLz4KPC9maWx0ZXI+CjxsaW5lYXJHcmFkaWVudCBpZD0icGFpbnQwX2xpbmVhcl82MDE5Nl81ODc3OTEiIHgxPSIwIiB5MT0iMCIgeDI9IjUxLjI1NTEiIHkyPSIyLjQ4NDg5IiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IndoaXRlIi8+CjxzdG9wIG9mZnNldD0iMC41IiBzdG9wLWNvbG9yPSJ3aGl0ZSIgc3RvcC1vcGFjaXR5PSIwLjIiLz4KPHN0b3Agb2Zmc2V0PSIxIiBzdG9wLWNvbG9yPSJ3aGl0ZSIvPgo8L2xpbmVhckdyYWRpZW50Pgo8cmFkaWFsR3JhZGllbnQgaWQ9InBhaW50MV9yYWRpYWxfNjAxOTZfNTg3NzkxIiBjeD0iMCIgY3k9IjAiIHI9IjEiIGdyYWRpZW50VHJhbnNmb3JtPSJtYXRyaXgoMTcuMDg0MiAyOC45NDgzIDM0LjI4ODEgLTU2LjE1OTUgMTQuNTY3OCA3LjAwMDMpIiBncmFkaWVudFVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+CjxzdG9wIHN0b3AtY29sb3I9IiNGRjJBMkQiLz4KPHN0b3Agb2Zmc2V0PSIwLjQ2ODU1MyIgc3RvcC1jb2xvcj0iI0ZGMkEyRCIvPgo8c3RvcCBvZmZzZXQ9IjAuNzY3MTYiIHN0b3AtY29sb3I9IiNGRjYyRUEiLz4KPHN0b3Agb2Zmc2V0PSIwLjk2MTI5NCIgc3RvcC1jb2xvcj0iI0M5RkYyNSIvPgo8L3JhZGlhbEdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPgo=";
@@ -23,12 +25,42 @@ export default function SuggestSite({
   return (
     <>
       <style>{css}</style>
-      <Row className="suggest__bootstrap-root suggest__n1">
+      <Row
+        className="suggest__bootstrap-root suggest__n1"
+        onClick={onClick}
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onKeyDown={
+          onClick
+            ? (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  onClick();
+                }
+              }
+            : undefined
+        }
+        style={{
+          width: "100%",
+          maxWidth: "100%",
+          justifyContent: "space-between",
+          cursor: onClick ? "pointer" : "default",
+        }}
+      >
         <Col xs="auto" className="suggest__c2">
-          <Row className="suggest__n3">
+          <Row
+            className="suggest__n3"
+            style={{
+              backgroundColor: "rgba(250,250,250,0.7)",
+              border: "1px solid rgba(255,255,255,0.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <Col xs="auto" className="suggest__c4">
               {useTopicIcon ? (
-                <svg width="19" height="19" viewBox="0 0 19 19" style={{ margin: "15px" }} fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <svg width="24" height="24" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                   <path
                     d="M9.97572 1.91025C7.73631 1.92672 5.64723 4.03978 3.79776 7.11384C1.94104 10.2 1.17748 13.1139 2.38109 14.9748C3.58467 16.8357 6.47032 17.7508 10.0018 17.7508C10.0019 17.7508 10.002 17.7508 10.0021 17.7508L10.0847 17.7506C13.5511 17.7365 16.3837 16.8355 17.5943 15.0183L17.6228 14.9748C18.817 13.1284 18.0747 10.2454 16.2495 7.18615L16.2061 7.11384C14.3495 4.02785 12.2514 1.91016 10.0021 1.91016L9.97572 1.91025ZM10.0019 15.8124C8.38814 15.8124 7.01306 15.6014 5.96097 15.2318C4.89936 14.8589 4.30198 14.3756 4.00871 13.9221C3.77877 13.5666 3.62751 12.9466 3.84167 11.8882C4.05502 10.8338 4.59669 9.5459 5.4587 8.11312C6.33374 6.6587 7.20327 5.54175 8.03471 4.80858C8.86667 4.07495 9.51542 3.84855 10.0021 3.84855C10.4887 3.84855 11.1374 4.07493 11.9693 4.80858C12.8007 5.54176 13.6702 6.65873 14.5452 8.11312C15.4072 9.5459 15.9489 10.8338 16.1622 11.8882C16.3764 12.9466 16.2251 13.5666 15.9952 13.9221C15.7019 14.3756 15.1045 14.8589 14.0429 15.2318C12.9908 15.6014 11.6158 15.8124 10.002 15.8124H10.0019Z"
                     fill="url(#paint0_radial_60196_587826)"
@@ -50,17 +82,16 @@ export default function SuggestSite({
                   style={{
                     width: 24,
                     height: 24,
+                    display: "block",
                     objectFit: "cover",
-                    margin: "12.5px",
                     borderRadius: "50%",
-                    overflow: "hidden",
                   }}
                 />
               )}
             </Col>
           </Row>
         </Col>
-        <Col xs="auto" className="suggest__c6">
+        <Col xs="auto" className="suggest__c6" style={{ flex: "1 1 auto", minWidth: 0 }}>
           <Row className="suggest__n7">
             <Col xs="auto" className="suggest__c8">
               <Row className="suggest__n9">
@@ -78,7 +109,7 @@ export default function SuggestSite({
             </Col>
           </Row>
         </Col>
-        <Col xs="auto" className="suggest__c16">
+        <Col xs="auto" className="suggest__c16" style={{ marginLeft: "auto" }}>
           <Row className="suggest__n17">
             <Col xs="auto" className="suggest__c18">
               <Row className="suggest__n19" style={{ justifyContent: "center", width: "100%" }}>

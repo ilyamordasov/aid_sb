@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 function AttachIcon() {
   return (
@@ -68,33 +68,51 @@ interface OmniboxProps {
   focusKey?: number
 }
 
-export default function Omnibox({
+export interface OmniboxHandle {
+  focusImmediately: () => void
+}
+
+const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
   onSubmit,
   onQueryChange,
   autoCompleteSuggestion = null,
   focusKey = 0,
-}: OmniboxProps) {
+}: OmniboxProps, ref) {
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLDivElement | null>(null)
   const isTyping = query.length > 0
+
+  const focusAndMoveCaretToEnd = useCallback(() => {
+    const target = inputRef.current
+    if (!target) {
+      return
+    }
+    target.focus()
+    const selection = window.getSelection()
+    if (!selection) {
+      return
+    }
+    const range = document.createRange()
+    range.selectNodeContents(target)
+    range.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }, [])
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focusImmediately() {
+        focusAndMoveCaretToEnd()
+      },
+    }),
+    [focusAndMoveCaretToEnd]
+  )
 
   useEffect(() => {
     const target = inputRef.current
     if (!target) {
       return
-    }
-
-    const focusAndMoveCaretToEnd = () => {
-      target.focus()
-      const selection = window.getSelection()
-      if (!selection) {
-        return
-      }
-      const range = document.createRange()
-      range.selectNodeContents(target)
-      range.collapse(false)
-      selection.removeAllRanges()
-      selection.addRange(range)
     }
 
     // iOS Safari can ignore immediate focus during overlay transitions.
@@ -110,7 +128,7 @@ export default function Omnibox({
       window.cancelAnimationFrame(rafId)
       timers.forEach((timerId) => window.clearTimeout(timerId))
     }
-  }, [focusKey])
+  }, [focusAndMoveCaretToEnd, focusKey])
 
   useEffect(() => {
     if (!query) return
@@ -204,4 +222,6 @@ export default function Omnibox({
       </div>
     </div>
   )
-}
+})
+
+export default Omnibox

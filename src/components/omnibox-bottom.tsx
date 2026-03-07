@@ -59,8 +59,17 @@ export default function BottomBarFoundation({
               xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
-              <path d="M17.5 6.5L6.5 17.5" stroke="black" strokeWidth="1.8" strokeLinecap="round" />
-              <path d="M6.5 6.5L17.5 17.5" stroke="black" strokeWidth="1.8" strokeLinecap="round" />
+              <g clipPath="url(#clip0_close_60453_94172)">
+                <path
+                  d="M19.5293 5.5293L13.0596 11.999L19.5293 18.4688L18.4688 19.5293L11.999 13.0596L5.5293 19.5293L4.46875 18.4688L10.9385 11.999L4.46875 5.5293L5.5293 4.46875L11.999 10.9385L18.4688 4.46875L19.5293 5.5293Z"
+                  fill="black"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_close_60453_94172">
+                  <rect width="24" height="24" fill="white" />
+                </clipPath>
+              </defs>
             </svg>
           ) : (
             <svg
