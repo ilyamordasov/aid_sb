@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { parseAddressInput } from './lib/address'
 import { SITE_SUGGESTIONS } from './lib/site-suggestions'
+import { buildOverlayBottom, computeViewportMetrics } from './lib/viewport-layout'
 import OmniboxBottom from './components/omnibox-bottom'
 import Omnibox from './components/omnibox'
 import Header from './components/header'
@@ -128,9 +129,6 @@ function CopyLinkIcon() {
 }
 
 function App() {
-  const OMNIBOX_HEIGHT = 161
-  const OMNIBOX_BOTTOM_GAP = 16
-
   const [currentUrl, setCurrentUrl] = useState<string | null>('https://apple.com')
   const [isLoading, setIsLoading] = useState(false)
   const [frameState, setFrameState] = useState<FrameState>('idle')
@@ -267,28 +265,48 @@ function App() {
 
   useEffect(() => {
     const root = document.documentElement
+    const debugEnabled = new URLSearchParams(window.location.search).get('omniboxDebugViewport') === '1'
 
     const updateViewportVars = () => {
       const vv = window.visualViewport
       const visibleHeight = vv?.height ?? window.innerHeight
       const offsetTop = vv?.offsetTop ?? 0
-      const keyboardHeight = Math.max(0, window.innerHeight - visibleHeight - offsetTop)
+      const viewportMetrics = computeViewportMetrics({
+        innerHeight: window.innerHeight,
+        visibleHeight,
+        offsetTop,
+      })
 
-      root.style.setProperty('--app-visible-height', `${visibleHeight}px`)
-      root.style.setProperty('--keyboard-height', `${keyboardHeight}px`)
+      root.style.setProperty('--app-visible-height', `${viewportMetrics.appVisibleHeight}px`)
+      root.style.setProperty('--keyboard-height', `${viewportMetrics.keyboardHeight}px`)
+      root.style.setProperty('--viewport-offset-top', `${viewportMetrics.viewportOffsetTop}px`)
+
+      if (debugEnabled) {
+        console.info('[omnibox-vv]', {
+          innerHeight: window.innerHeight,
+          visualViewportHeight: visibleHeight,
+          visualViewportOffsetTop: offsetTop,
+          appVisibleHeight: viewportMetrics.appVisibleHeight,
+          keyboardHeight: viewportMetrics.keyboardHeight,
+          viewportOffsetTop: viewportMetrics.viewportOffsetTop,
+        })
+      }
     }
 
-    updateViewportVars()
-    window.visualViewport?.addEventListener('resize', updateViewportVars)
-    window.visualViewport?.addEventListener('scroll', updateViewportVars)
-    window.addEventListener('resize', updateViewportVars)
-    window.addEventListener('orientationchange', updateViewportVars)
+    const handleViewportChange = () => updateViewportVars()
+    const handleOrientationChange = () => updateViewportVars()
+
+    handleViewportChange()
+    window.visualViewport?.addEventListener('resize', handleViewportChange)
+    window.visualViewport?.addEventListener('scroll', handleViewportChange)
+    window.addEventListener('resize', handleViewportChange)
+    window.addEventListener('orientationchange', handleOrientationChange)
 
     return () => {
-      window.visualViewport?.removeEventListener('resize', updateViewportVars)
-      window.visualViewport?.removeEventListener('scroll', updateViewportVars)
-      window.removeEventListener('resize', updateViewportVars)
-      window.removeEventListener('orientationchange', updateViewportVars)
+      window.visualViewport?.removeEventListener('resize', handleViewportChange)
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange)
+      window.removeEventListener('resize', handleViewportChange)
+      window.removeEventListener('orientationchange', handleOrientationChange)
     }
   }, [])
 
@@ -351,12 +369,18 @@ function App() {
     window.open(currentUrl, '_blank', 'noopener,noreferrer')
   }
 
+  const closeOmniboxOverlay = () => {
+    const activeElement = document.activeElement as HTMLElement | null
+    activeElement?.blur()
+    setIsOmniboxExpanded(false)
+  }
+
   const inputStyle: CSSProperties = {
-    bottom: 'calc(16px + env(safe-area-inset-bottom))',
+    bottom: buildOverlayBottom(16),
   }
   const suggestsStyle: CSSProperties = {
     top: 'auto',
-    bottom: `calc(env(safe-area-inset-bottom) + ${OMNIBOX_BOTTOM_GAP + OMNIBOX_HEIGHT + 10}px)`,
+    bottom: 'calc(env(safe-area-inset-bottom) + 16px + var(--keyboard-height) + var(--omnibox-height) + 8px)',
   }
 
   return (
@@ -483,7 +507,7 @@ function App() {
           document.body
         )}
 
-      {(isOmniboxExpanded || !!currentUrl) &&
+      {isOmniboxExpanded &&
         createPortal(
           <div className="omnibox-ui-root">
             <div className="omnibox-pinned-header" onClick={(event) => event.stopPropagation()}>
@@ -494,18 +518,14 @@ function App() {
                 type="button"
                 className="omnibox-open-close-hit"
                 aria-label="Close omnibox"
-                onClick={() => setIsOmniboxExpanded(false)}
-              >
-                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                  <rect width="48" height="48" rx="24" fill="rgba(250,250,250,0.7)" />
-                  <path d="M33 15L15 33" stroke="#111111" strokeWidth="1.8" strokeLinecap="round" />
-                  <path d="M15 15L33 33" stroke="#111111" strokeWidth="1.8" strokeLinecap="round" />
-                </svg>
-              </button>
+                onPointerUp={closeOmniboxOverlay}
+                onTouchEnd={closeOmniboxOverlay}
+                onClick={closeOmniboxOverlay}
+              />
             </div>
 
             {isOmniboxExpanded && (
-              <div className="omnibox-open-overlay" onClick={() => setIsOmniboxExpanded(false)} role="dialog" aria-modal="true">
+              <div className="omnibox-open-overlay" onClick={closeOmniboxOverlay} role="dialog" aria-modal="true">
               <div className="omnibox-open-top" onClick={(event) => event.stopPropagation()}>
             {!isIncognitoTrigger && <div className="omnibox-open-shortcuts">
               <svg width="393" height="112" viewBox="0 0 393 112" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
