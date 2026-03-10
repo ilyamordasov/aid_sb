@@ -3,12 +3,11 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import Omnibox from './omnibox'
 
 describe('Omnibox input', () => {
-  it('uses one contenteditable textbox and no native text input', () => {
+  it('uses native textarea input', () => {
     const html = renderToStaticMarkup(<Omnibox onSubmit={() => {}} />)
 
     expect(html).toContain('class="omnibox-input-text"')
-    expect(html).toContain('tabindex="0"')
-    expect(html).toContain('contentEditable="true"')
-    expect((html.match(/type="text"/g) ?? []).length).toBe(0)
+    expect(html).toContain('<textarea')
+    expect(html).toContain('placeholder="ask anything or type url"')
   })
 })

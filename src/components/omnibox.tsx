@@ -79,7 +79,7 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
   focusKey = 0,
 }: OmniboxProps, ref) {
   const [query, setQuery] = useState('')
-  const inputRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const skipAsyncFocusRef = useRef(false)
   const isTyping = query.length > 0
 
@@ -93,15 +93,8 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
     } catch {
       target.focus()
     }
-    const selection = window.getSelection()
-    if (!selection) {
-      return
-    }
-    const range = document.createRange()
-    range.selectNodeContents(target)
-    range.collapse(false)
-    selection.removeAllRanges()
-    selection.addRange(range)
+    const end = target.value.length
+    target.setSelectionRange(end, end)
   }, [])
 
   useImperativeHandle(
@@ -149,7 +142,7 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
   }, [autoCompleteSuggestion])
 
   const submitQuery = () => {
-    const value = (inputRef.current?.textContent ?? query).trim()
+    const value = (inputRef.current?.value ?? query).trim()
     if (!value) {
       return
     }
@@ -168,37 +161,33 @@ const Omnibox = forwardRef<OmniboxHandle, OmniboxProps>(function Omnibox({
       return
     }
 
-    target.textContent = suggestion
-    const textNode = target.firstChild
-    if (!textNode) return
-    const selection = window.getSelection()
-    if (!selection) return
-    const range = document.createRange()
-    range.setStart(textNode, typedValue.length)
-    range.setEnd(textNode, suggestion.length)
-    selection.removeAllRanges()
-    selection.addRange(range)
+    setQuery(suggestion)
+    onQueryChange?.(suggestion)
+    window.requestAnimationFrame(() => {
+      target.setSelectionRange(typedValue.length, suggestion.length)
+    })
   }
 
   return (
     <div className="omnibox-input" onClick={(event) => event.stopPropagation()}>
       <div className="omnibox-input-field">
         <div className="omnibox-input-text-wrap">
-          <div
+          <textarea
             ref={inputRef}
-            role="textbox"
             aria-label="Omnibox"
-            aria-multiline="false"
-            tabIndex={0}
             className="omnibox-input-text"
             dir="ltr"
             lang="ru"
             inputMode="text"
-            contentEditable
-            suppressContentEditableWarning
-            data-placeholder="ask anything or type url"
-            onInput={(event) => {
-              const value = (event.currentTarget.textContent ?? '').replace(/\n/g, '')
+            enterKeyHint="search"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            placeholder="ask anything or type url"
+            value={query}
+            rows={1}
+            onChange={(event) => {
+              const value = event.currentTarget.value.replace(/\n/g, '')
               const inputType = (event.nativeEvent as InputEvent | undefined)?.inputType ?? ''
               const isDeleteInput = inputType.startsWith('delete')
               setQuery(value)

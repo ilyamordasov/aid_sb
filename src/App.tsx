@@ -392,6 +392,7 @@ function App() {
 
   const openExpandedOmnibox = () => {
     flushSync(() => {
+      setIsMoreOptionsOpen(false)
       setOmniboxQuery('')
       setIsOmniboxExpanded(true)
       setOmniboxFocusKey((prev) => prev + 1)
@@ -453,6 +454,7 @@ function App() {
               <OmniboxBottom
                 currentHost={getCurrentHost()}
                 isMoreOptionsOpen={isMoreOptionsOpen}
+                onActivateOmnibox={openExpandedOmnibox}
                 onMoreOptionsClick={() => setIsMoreOptionsOpen((prev) => !prev)}
               />
             </div>

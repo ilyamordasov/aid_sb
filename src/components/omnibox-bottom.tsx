@@ -1,39 +1,71 @@
 interface BottomBarFoundationProps {
   currentHost?: string
   onMoreOptionsClick?: () => void
+  onActivateOmnibox?: () => void
   isMoreOptionsOpen?: boolean
 }
 
 export default function BottomBarFoundation({
   currentHost = 'apple.com',
   onMoreOptionsClick,
+  onActivateOmnibox,
   isMoreOptionsOpen = false,
 }: BottomBarFoundationProps) {
   return (
     <div className="safari-bottom-wrap" role="navigation" aria-label="Browser controls">
       <div className="safari-bottom-row">
-        <button type="button" className="safari-bottom-btn" aria-label="Back">
-          <svg
-            className="safari-bottom-icon"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <g clipPath="url(#clip0_back_60388_3475)">
-              <path
-                d="M15.5283 4.5293L8.05859 11.999L15.5283 19.4688L14.4678 20.5293L5.9375 11.999L14.4678 3.46875L15.5283 4.5293Z"
-                fill="black"
-              />
-            </g>
-            <defs>
-              <clipPath id="clip0_back_60388_3475">
-                <rect width="24" height="24" fill="white" />
-              </clipPath>
-            </defs>
-          </svg>
+        <button
+          type="button"
+          className="safari-bottom-btn"
+          aria-label={isMoreOptionsOpen ? 'Open omnibox' : 'Back'}
+          onClick={(event) => {
+            if (!isMoreOptionsOpen) return
+            event.stopPropagation()
+            onActivateOmnibox?.()
+          }}
+        >
+          {isMoreOptionsOpen ? (
+            <svg
+              className="safari-bottom-icon"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <g clipPath="url(#clip0_plus_60586_110986)">
+                <path d="M12.75 11.25H22V12.75H12.75V22H11.25V12.75H2V11.25H11.25V2H12.75V11.25Z" fill="black" />
+              </g>
+              <defs>
+                <clipPath id="clip0_plus_60586_110986">
+                  <rect width="24" height="24" fill="white" />
+                </clipPath>
+              </defs>
+            </svg>
+          ) : (
+            <svg
+              className="safari-bottom-icon"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <g clipPath="url(#clip0_back_60388_3475)">
+                <path
+                  d="M15.5283 4.5293L8.05859 11.999L15.5283 19.4688L14.4678 20.5293L5.9375 11.999L14.4678 3.46875L15.5283 4.5293Z"
+                  fill="black"
+                />
+              </g>
+              <defs>
+                <clipPath id="clip0_back_60388_3475">
+                  <rect width="24" height="24" fill="white" />
+                </clipPath>
+              </defs>
+            </svg>
+          )}
         </button>
 
         <div className="safari-address-pill" aria-label="Current website">

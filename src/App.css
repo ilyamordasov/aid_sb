@@ -553,6 +553,10 @@
   border: 0;
   outline: 0;
   background: transparent;
+  resize: none;
+  overflow: hidden;
+  -webkit-appearance: none;
+  appearance: none;
   min-height: 20px;
   direction: ltr;
   text-align: left;
@@ -566,6 +570,8 @@
   letter-spacing: 0;
   white-space: pre-wrap;
   word-break: break-word;
+  padding: 0;
+  margin: 0;
 }
 
 .omnibox-input-text::selection {
@@ -578,10 +584,8 @@
   color: #0a6bff;
 }
 
-.omnibox-input-text[contenteditable='true']:empty::before {
-  content: attr(data-placeholder);
+.omnibox-input-text::placeholder {
   color: rgba(0, 0, 0, 0.45);
-  pointer-events: none;
 }
 
 .omnibox-input-actions {
